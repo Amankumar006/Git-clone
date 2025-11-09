@@ -44,27 +44,27 @@
 ## � Screenshots
 
 ### Home Feed
-![Home Feed](uploads/Images/Screenshot%202025-11-09%20at%209.22.24%20PM.png)
+![Home Feed](./uploads/Images/Screenshot%202025-11-09%20at%209.22.24%20PM.png)
 *Browse trending articles and personalized content feed*
 
 ### Article Reader
-![Article Reader](uploads/Images/Screenshot%202025-11-09%20at%209.22.55%20PM.png)
+![Article Reader](./uploads/Images/Screenshot%202025-11-09%20at%209.22.55%20PM.png)
 *Clean, distraction-free reading experience*
 
 ### Rich Text Editor
-![Rich Text Editor](uploads/Images/Screenshot%202025-11-09%20at%209.23.05%20PM.png)
+![Rich Text Editor](./uploads/Images/Screenshot%202025-11-09%20at%209.23.05%20PM.png)
 *Powerful TipTap editor with formatting options and image upload*
 
 ### User Profile
-![User Profile](uploads/Images/Screenshot%202025-11-09%20at%209.23.12%20PM.png)
+![User Profile](./uploads/Images/Screenshot%202025-11-09%20at%209.23.12%20PM.png)
 *Comprehensive user profiles with articles and stats*
 
 ### Publication Dashboard
-![Publication Dashboard](uploads/Images/Screenshot%202025-11-09%20at%209.23.27%20PM.png)
+![Publication Dashboard](./uploads/Images/Screenshot%202025-11-09%20at%209.23.27%20PM.png)
 *Manage publications with analytics and team members*
 
 ### Notification Center
-![Notification Center](uploads/Images/Screenshot%202025-11-09%20at%209.23.33%20PM.png)
+![Notification Center](./uploads/Images/Screenshot%202025-11-09%20at%209.23.33%20PM.png)
 *Real-time notifications for engagement and activity*
 
 ## �🚀 Quick Start
