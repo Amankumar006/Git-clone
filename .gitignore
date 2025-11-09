@@ -1,0 +1,100 @@
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Node.js / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+
+# React / Build Files
+frontend/build/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# PHP / Backend
+api/.env
+api/vendor/
+composer.phar
+composer.lock
+.phpunit.result.cache
+
+# Logs
+*.log
+logs/
+api/logs/
+frontend/logs/
+
+# Uploaded Files (keep structure, ignore content)
+uploads/*
+!uploads/.gitkeep
+uploads/articles/*
+!uploads/articles/.gitkeep
+uploads/profiles/*
+!uploads/profiles/.gitkeep
+uploads/publications/*
+!uploads/publications/.gitkeep
+uploads/Images/*
+!uploads/Images/.gitkeep
+
+# Database
+*.sql.gz
+*.sqlite
+*.db
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+*.cache
+.cache/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+.env.backup
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Production
+dist/
+build/
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+.pnp.*
