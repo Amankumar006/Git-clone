@@ -1,0 +1,494 @@
+<?php
+
+require_once __DIR__ . '/BaseRepository.php';
+
+class Comment extends BaseRepository {
+    protected $table = 'comments';
+    
+    public function __construct() {
+        parent::__construct();
+    }
+    
+    /**
+     * Create a new comment
+     * @param int $articleId
+     * @param int $userId
+     * @param string $content
+     * @param int|null $parentCommentId
+     * @return array
+     */
+    public function createComment($articleId, $userId, $content, $parentCommentId = null) {
+        try {
+            // Validate nesting level (max 3 levels deep)
+            if ($parentCommentId && !$this->isValidNestingLevel($parentCommentId)) {
+                return [
+                    'success' => false,
+                    'error' => 'Maximum comment nesting level reached (3 levels)'
+                ];
+            }
+            
+            $stmt = $this->db->prepare("
+                INSERT INTO comments (article_id, user_id, parent_comment_id, content) 
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([$articleId, $userId, $parentCommentId, $content]);
+            
+            $commentId = $this->db->lastInsertId();
+            
+            // Scan content for moderation
+            $this->scanContentForModeration($commentId, $content);
+            
+            // Update article comment count
+            $this->updateArticleCommentCount($articleId);
+            
+            // Get the created comment with user info
+            $comment = $this->getCommentById($commentId);
+            
+            return [
+                'success' => true,
+                'data' => $comment
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Error creating comment: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Failed to create comment'
+            ];
+        }
+    }
+    
+    /**
+     * Get comment by ID with user information
+     * @param int $commentId
+     * @return array|null
+     */
+    public function getCommentById($commentId) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT c.*, u.username, u.profile_image_url
+                FROM comments c
+                JOIN users u ON c.user_id = u.id
+                WHERE c.id = ?
+            ");
+            $stmt->execute([$commentId]);
+            return $stmt->fetch();
+        } catch (Exception $e) {
+            error_log("Error getting comment by ID: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Get comments for an article with threading
+     * @param int $articleId
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getArticleComments($articleId, $limit = 20, $offset = 0) {
+        try {
+            // Get top-level comments first
+            $stmt = $this->db->prepare("
+                SELECT c.*, u.username, u.profile_image_url
+                FROM comments c
+                JOIN users u ON c.user_id = u.id
+                WHERE c.article_id = ? AND c.parent_comment_id IS NULL
+                ORDER BY c.created_at ASC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute([$articleId, $limit, $offset]);
+            $topLevelComments = $stmt->fetchAll();
+            
+            // Get replies for each top-level comment
+            foreach ($topLevelComments as &$comment) {
+                $comment['replies'] = $this->getCommentReplies($comment['id']);
+            }
+            
+            return $topLevelComments;
+            
+        } catch (Exception $e) {
+            error_log("Error getting article comments: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get replies for a comment (recursive up to 3 levels)
+     * @param int $parentId
+     * @param int $level
+     * @return array
+     */
+    public function getCommentReplies($parentId, $level = 1) {
+        try {
+            if ($level > 3) {
+                return []; // Max 3 levels of nesting
+            }
+            
+            $stmt = $this->db->prepare("
+                SELECT c.*, u.username, u.profile_image_url
+                FROM comments c
+                JOIN users u ON c.user_id = u.id
+                WHERE c.parent_comment_id = ?
+                ORDER BY c.created_at ASC
+            ");
+            $stmt->execute([$parentId]);
+            $replies = $stmt->fetchAll();
+            
+            // Get nested replies
+            foreach ($replies as &$reply) {
+                $reply['replies'] = $this->getCommentReplies($reply['id'], $level + 1);
+            }
+            
+            return $replies;
+            
+        } catch (Exception $e) {
+            error_log("Error getting comment replies: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Update a comment (only by the author)
+     * @param int $commentId
+     * @param int $userId
+     * @param string $content
+     * @return array
+     */
+    public function updateComment($commentId, $userId, $content) {
+        try {
+            // Check if user owns the comment
+            $stmt = $this->db->prepare("
+                SELECT user_id FROM comments WHERE id = ?
+            ");
+            $stmt->execute([$commentId]);
+            $comment = $stmt->fetch();
+            
+            if (!$comment || $comment['user_id'] != $userId) {
+                return [
+                    'success' => false,
+                    'error' => 'Unauthorized to edit this comment'
+                ];
+            }
+            
+            // Update the comment
+            $stmt = $this->db->prepare("
+                UPDATE comments 
+                SET content = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            ");
+            $stmt->execute([$content, $commentId]);
+            
+            // Get updated comment
+            $updatedComment = $this->getCommentById($commentId);
+            
+            return [
+                'success' => true,
+                'data' => $updatedComment
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Error updating comment: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Failed to update comment'
+            ];
+        }
+    }
+    
+    /**
+     * Delete a comment (only by the author)
+     * @param int $commentId
+     * @param int $userId
+     * @return array
+     */
+    public function deleteComment($commentId, $userId) {
+        try {
+            // Check if user owns the comment
+            $stmt = $this->db->prepare("
+                SELECT user_id, article_id FROM comments WHERE id = ?
+            ");
+            $stmt->execute([$commentId]);
+            $comment = $stmt->fetch();
+            
+            if (!$comment || $comment['user_id'] != $userId) {
+                return [
+                    'success' => false,
+                    'error' => 'Unauthorized to delete this comment'
+                ];
+            }
+            
+            $articleId = $comment['article_id'];
+            
+            // Delete the comment (cascade will handle replies)
+            $stmt = $this->db->prepare("DELETE FROM comments WHERE id = ?");
+            $stmt->execute([$commentId]);
+            
+            // Update article comment count
+            $this->updateArticleCommentCount($articleId);
+            
+            return [
+                'success' => true,
+                'message' => 'Comment deleted successfully'
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Error deleting comment: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Failed to delete comment'
+            ];
+        }
+    }
+    
+    /**
+     * Get total comment count for an article
+     * @param int $articleId
+     * @return int
+     */
+    public function getArticleCommentCount($articleId) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as count FROM comments WHERE article_id = ?
+            ");
+            $stmt->execute([$articleId]);
+            $result = $stmt->fetch();
+            return (int)$result['count'];
+        } catch (Exception $e) {
+            error_log("Error getting comment count: " . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Update article comment count
+     * @param int $articleId
+     */
+    private function updateArticleCommentCount($articleId) {
+        try {
+            $count = $this->getArticleCommentCount($articleId);
+            
+            $stmt = $this->db->prepare("
+                UPDATE articles SET comment_count = ? WHERE id = ?
+            ");
+            $stmt->execute([$count, $articleId]);
+        } catch (Exception $e) {
+            error_log("Error updating article comment count: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Check if nesting level is valid (max 3 levels)
+     * @param int $parentCommentId
+     * @return bool
+     */
+    private function isValidNestingLevel($parentCommentId) {
+        try {
+            $level = 1;
+            $currentParentId = $parentCommentId;
+            
+            while ($currentParentId && $level < 3) {
+                $stmt = $this->db->prepare("
+                    SELECT parent_comment_id FROM comments WHERE id = ?
+                ");
+                $stmt->execute([$currentParentId]);
+                $parent = $stmt->fetch();
+                
+                if ($parent && $parent['parent_comment_id']) {
+                    $currentParentId = $parent['parent_comment_id'];
+                    $level++;
+                } else {
+                    break;
+                }
+            }
+            
+            return $level < 3;
+            
+        } catch (Exception $e) {
+            error_log("Error checking nesting level: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get user's comments
+     * @param int $userId
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getUserComments($userId, $limit = 20, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT c.*, a.title as article_title, a.id as article_id
+                FROM comments c
+                JOIN articles a ON c.article_id = a.id
+                WHERE c.user_id = ?
+                ORDER BY c.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute([$userId, $limit, $offset]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log("Error getting user comments: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Scan comment content for moderation
+     */
+    private function scanContentForModeration($commentId, $content) {
+        try {
+            require_once __DIR__ . '/ContentFilter.php';
+            $contentFilter = new ContentFilter();
+            
+            // Scan the content
+            $contentFilter->scanContent('comment', $commentId, $content);
+        } catch (Exception $e) {
+            // Log error but don't fail comment creation
+            error_log('Content scanning error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get total comments for all articles by author
+     */
+    public function getTotalCommentsByAuthor($authorId) {
+        $sql = "SELECT COUNT(*) as total_comments
+                FROM comments c
+                JOIN articles a ON c.article_id = a.id
+                WHERE a.author_id = ?";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$authorId]);
+        $result = $stmt->fetch();
+        
+        return (int)$result['total_comments'];
+    }
+
+    /**
+     * Get recent comments on user's articles
+     */
+    public function getRecentCommentsOnUserArticles($authorId, $limit = 10) {
+        $sql = "SELECT 
+                    c.*, 
+                    u.username as commenter_username,
+                    u.profile_image_url as commenter_avatar,
+                    a.title as article_title,
+                    a.slug as article_slug
+                FROM comments c
+                JOIN articles a ON c.article_id = a.id
+                JOIN users u ON c.user_id = u.id
+                WHERE a.author_id = ?
+                ORDER BY c.created_at DESC
+                LIMIT ?";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$authorId, $limit]);
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Get comments over time for author's articles
+     */
+    public function getCommentsOverTime($authorId, $days = 30) {
+        $sql = "SELECT 
+                    DATE(c.created_at) as date,
+                    COUNT(*) as comments
+                FROM comments c
+                JOIN articles a ON c.article_id = a.id
+                WHERE a.author_id = ? 
+                AND c.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                GROUP BY DATE(c.created_at)
+                ORDER BY date ASC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$authorId, $days]);
+        $results = $stmt->fetchAll();
+        
+        // Convert to associative array by date
+        $commentsByDate = [];
+        foreach ($results as $result) {
+            $commentsByDate[$result['date']] = (int)$result['comments'];
+        }
+        
+        return $commentsByDate;
+    }
+
+
+
+    /**
+     * Get recent comments on user's articles
+     */
+    public function getRecentCommentsOnUserArticles($authorId, $limit = 10) {
+        try {
+            $sql = "SELECT 
+                        c.*, 
+                        u.username as commenter_username,
+                        u.profile_image_url as commenter_avatar,
+                        a.title as article_title,
+                        a.id as article_id
+                    FROM comments c
+                    JOIN articles a ON c.article_id = a.id
+                    JOIN users u ON c.user_id = u.id
+                    WHERE a.author_id = ?
+                    ORDER BY c.created_at DESC
+                    LIMIT ?";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$authorId, $limit]);
+            
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get comments for moderation
+     */
+    public function getCommentsForModeration($status = '', $limit = 20, $offset = 0) {
+        $whereConditions = ['1=1'];
+        $params = [];
+        
+        if (!empty($status)) {
+            $whereConditions[] = "c.moderation_status = ?";
+            $params[] = $status;
+        }
+        
+        $whereClause = implode(' AND ', $whereConditions);
+        
+        $sql = "SELECT c.*, u.username as author_username, a.title as article_title
+                FROM {$this->table} c
+                LEFT JOIN users u ON c.user_id = u.id
+                LEFT JOIN articles a ON c.article_id = a.id
+                WHERE {$whereClause}
+                ORDER BY c.created_at DESC
+                LIMIT ? OFFSET ?";
+        
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Update moderation status
+     */
+    public function updateModerationStatus($commentId, $status, $moderatorId = null) {
+        $validStatuses = ['approved', 'pending', 'flagged', 'removed'];
+        if (!in_array($status, $validStatuses)) {
+            throw new Exception('Invalid moderation status');
+        }
+        
+        $sql = "UPDATE {$this->table} 
+                SET moderation_status = ?, moderated_by = ? 
+                WHERE id = ?";
+        
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$status, $moderatorId, $commentId]);
+    }}

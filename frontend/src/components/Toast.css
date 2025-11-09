@@ -1,0 +1,56 @@
+/* Toast animations and styles */
+.toast-enter {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.toast-enter-active {
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+
+.toast-exit {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast-exit-active {
+  transform: translateX(100%);
+  opacity: 0;
+  transition: transform 300ms ease-in, opacity 300ms ease-in;
+}
+
+/* Ensure toasts are above other content */
+.toast-container {
+  z-index: 9999;
+}
+
+/* Smooth hover effects for toast close button */
+.toast-close-button {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.toast-close-button:hover {
+  opacity: 1 !important;
+}
+
+/* Progress bar for toast duration (optional enhancement) */
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background-color: currentColor;
+  opacity: 0.3;
+  animation: toast-progress linear;
+}
+
+@keyframes toast-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}

@@ -1,0 +1,411 @@
+<?php
+
+require_once __DIR__ . '/BaseRepository.php';
+
+class Follow extends BaseRepository {
+    protected $table = 'follows';
+    
+    public function __construct() {
+        parent::__construct();
+    }
+    
+    /**
+     * Follow a user
+     * @param int $followerId
+     * @param int $followingId
+     * @return array
+     */
+    public function followUser($followerId, $followingId) {
+        try {
+            // Prevent self-following
+            if ($followerId === $followingId) {
+                return [
+                    'success' => false,
+                    'error' => 'Cannot follow yourself'
+                ];
+            }
+            
+            // Check if already following
+            if ($this->isFollowing($followerId, $followingId)) {
+                return [
+                    'success' => false,
+                    'error' => 'Already following this user'
+                ];
+            }
+            
+            $stmt = $this->db->prepare("
+                INSERT INTO follows (follower_id, following_id) 
+                VALUES (?, ?)
+            ");
+            $stmt->execute([$followerId, $followingId]);
+            
+            return [
+                'success' => true,
+                'message' => 'Successfully followed user'
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Error following user: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Failed to follow user'
+            ];
+        }
+    }
+    
+    /**
+     * Unfollow a user
+     * @param int $followerId
+     * @param int $followingId
+     * @return array
+     */
+    public function unfollowUser($followerId, $followingId) {
+        try {
+            $stmt = $this->db->prepare("
+                DELETE FROM follows 
+                WHERE follower_id = ? AND following_id = ?
+            ");
+            $stmt->execute([$followerId, $followingId]);
+            
+            return [
+                'success' => true,
+                'message' => 'Successfully unfollowed user'
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Error unfollowing user: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Failed to unfollow user'
+            ];
+        }
+    }
+    
+    /**
+     * Check if user is following another user
+     * @param int $followerId
+     * @param int $followingId
+     * @return bool
+     */
+    public function isFollowing($followerId, $followingId) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 1 FROM follows 
+                WHERE follower_id = ? AND following_id = ?
+            ");
+            $stmt->execute([$followerId, $followingId]);
+            return $stmt->fetch() !== false;
+        } catch (Exception $e) {
+            error_log("Error checking follow status: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get user's followers
+     * @param int $userId
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getFollowers($userId, $limit = 20, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.*, f.created_at as followed_at
+                FROM follows f
+                JOIN users u ON f.follower_id = u.id
+                WHERE f.following_id = ?
+                ORDER BY f.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute([$userId, $limit, $offset]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log("Error getting followers: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get users that a user is following
+     * @param int $userId
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getFollowing($userId, $limit = 20, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.*, f.created_at as followed_at
+                FROM follows f
+                JOIN users u ON f.following_id = u.id
+                WHERE f.follower_id = ?
+                ORDER BY f.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute([$userId, $limit, $offset]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log("Error getting following: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get follower count for user
+     * @param int $userId
+     * @return int
+     */
+    public function getFollowerCount($userId) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as count FROM follows WHERE following_id = ?
+            ");
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch();
+            return (int)$result['count'];
+        } catch (Exception $e) {
+            error_log("Error getting follower count: " . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Get following count for user
+     * @param int $userId
+     * @return int
+     */
+    public function getFollowingCount($userId) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as count FROM follows WHERE follower_id = ?
+            ");
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch();
+            return (int)$result['count'];
+        } catch (Exception $e) {
+            error_log("Error getting following count: " . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Get articles from followed users (following feed)
+     * @param int $userId
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getFollowingFeed($userId, $limit = 20, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT a.*, u.username, u.profile_image_url
+                FROM articles a
+                JOIN users u ON a.author_id = u.id
+                JOIN follows f ON a.author_id = f.following_id
+                WHERE f.follower_id = ? AND a.status = 'published'
+                ORDER BY a.published_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute([$userId, $limit, $offset]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log("Error getting following feed: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get mutual follows (users who follow each other)
+     * @param int $userId
+     * @param int $limit
+     * @return array
+     */
+    public function getMutualFollows($userId, $limit = 10) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.*, f1.created_at as followed_at
+                FROM follows f1
+                JOIN follows f2 ON f1.following_id = f2.follower_id AND f1.follower_id = f2.following_id
+                JOIN users u ON f1.following_id = u.id
+                WHERE f1.follower_id = ?
+                ORDER BY f1.created_at DESC
+                LIMIT ?
+            ");
+            $stmt->execute([$userId, $limit]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log("Error getting mutual follows: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get suggested users to follow (users with most followers that current user doesn't follow)
+     * @param int $userId
+     * @param int $limit
+     * @return array
+     */
+    public function getSuggestedFollows($userId, $limit = 10) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.*, COUNT(f.follower_id) as follower_count
+                FROM users u
+                LEFT JOIN follows f ON u.id = f.following_id
+                WHERE u.id != ? 
+                AND u.id NOT IN (
+                    SELECT following_id FROM follows WHERE follower_id = ?
+                )
+                GROUP BY u.id
+                ORDER BY follower_count DESC, u.created_at DESC
+                LIMIT ?
+            ");
+            $stmt->execute([$userId, $userId, $limit]);
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            error_log("Error getting suggested follows: " . $e->getMessage());
+            return [];
+        }
+    }
+    /**
+     * Get follower count for a user
+     */
+    public function getFollowerCount($userId) {
+        $sql = "SELECT COUNT(*) as follower_count
+                FROM follows 
+                WHERE following_id = ?";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$userId]);
+        $result = $stmt->fetch();
+        
+        return (int)$result['follower_count'];
+    }
+
+    /**
+     * Get recent followers for a user
+     */
+    public function getRecentFollowers($userId, $limit = 5) {
+        $sql = "SELECT 
+                    f.*, 
+                    u.username as follower_username,
+                    u.profile_image_url as follower_avatar
+                FROM follows f
+                JOIN users u ON f.follower_id = u.id
+                WHERE f.following_id = ?
+                ORDER BY f.created_at DESC
+                LIMIT ?";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$userId, $limit]);
+        
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Get follows over time for a user
+     */
+    public function getFollowsOverTime($userId, $days = 30) {
+        $sql = "SELECT 
+                    DATE(created_at) as date,
+                    COUNT(*) as follows
+                FROM follows 
+                WHERE following_id = ? 
+                AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                GROUP BY DATE(created_at)
+                ORDER BY date ASC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$userId, $days]);
+        $results = $stmt->fetchAll();
+        
+        // Convert to associative array by date
+        $followsByDate = [];
+        foreach ($results as $result) {
+            $followsByDate[$result['date']] = (int)$result['follows'];
+        }
+        
+        return $followsByDate;
+    }    
+/**
+     * Get follower count for a user
+     */
+    public function getFollowerCount($userId) {
+        try {
+            $sql = "SELECT COUNT(*) as count FROM follows WHERE following_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch();
+            
+            return (int)$result['count'];
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Get following count for a user
+     */
+    public function getFollowingCount($userId) {
+        try {
+            $sql = "SELECT COUNT(*) as count FROM follows WHERE follower_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$userId]);
+            $result = $stmt->fetch();
+            
+            return (int)$result['count'];
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Get recent followers
+     */
+    public function getRecentFollowers($userId, $limit = 5) {
+        try {
+            $sql = "SELECT 
+                        f.*, 
+                        u.username as follower_username,
+                        u.profile_image_url as follower_avatar
+                    FROM follows f
+                    JOIN users u ON f.follower_id = u.id
+                    WHERE f.following_id = ?
+                    ORDER BY f.created_at DESC
+                    LIMIT ?";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$userId, $limit]);
+            
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get following feed for a user
+     */
+    public function getFollowingFeed($userId, $limit = 20, $offset = 0) {
+        try {
+            $sql = "SELECT 
+                        a.*,
+                        u.username as author_name,
+                        u.profile_image_url as author_avatar
+                    FROM articles a
+                    JOIN users u ON a.author_id = u.id
+                    JOIN follows f ON a.author_id = f.following_id
+                    WHERE f.follower_id = ? 
+                        AND a.status = 'published'
+                    ORDER BY a.published_at DESC
+                    LIMIT ? OFFSET ?";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$userId, $limit, $offset]);
+            
+            return $stmt->fetchAll();
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+}

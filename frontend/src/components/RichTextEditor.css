@@ -1,0 +1,411 @@
+/* Medium-inspired inline editor styles */
+.medium-inline-editor .ProseMirror {
+    outline: none;
+    font-family: charter, Georgia, Cambria, "Times New Roman", Times, serif;
+    font-size: 21px;
+    line-height: 1.58;
+    letter-spacing: -0.003em;
+    color: #292929;
+    min-height: 200px;
+}
+
+.medium-editor-content .ProseMirror {
+    outline: none;
+    font-family: charter, Georgia, Cambria, "Times New Roman", Times, serif;
+    font-size: 21px;
+    line-height: 1.58;
+    letter-spacing: -0.003em;
+    color: #292929;
+    min-height: 500px;
+}
+
+.medium-inline-editor .ProseMirror h1,
+.medium-editor-content .ProseMirror h1 {
+    font-size: 2.5rem;
+    line-height: 1.2;
+    margin: 2rem 0 1rem 0;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #1a1a1a;
+}
+
+.medium-inline-editor .ProseMirror h2,
+.medium-editor-content .ProseMirror h2 {
+    font-size: 2rem;
+    line-height: 1.3;
+    margin: 1.8rem 0 0.8rem 0;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: #1a1a1a;
+}
+
+.medium-inline-editor .ProseMirror h3,
+.medium-editor-content .ProseMirror h3 {
+    font-size: 1.5rem;
+    line-height: 1.4;
+    margin: 1.5rem 0 0.6rem 0;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #1a1a1a;
+}
+
+.medium-inline-editor .ProseMirror p,
+.medium-editor-content .ProseMirror p {
+    margin: 1.5rem 0;
+    line-height: 1.58;
+    color: #292929;
+}
+
+.medium-inline-editor .ProseMirror blockquote,
+.medium-editor-content .ProseMirror blockquote {
+    border-left: 3px solid #10b981;
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    font-style: italic;
+    font-size: 1.1em;
+    color: #6b7280;
+    background: rgba(16, 185, 129, 0.05);
+    padding: 1rem 1.5rem;
+    border-radius: 0 4px 4px 0;
+}
+
+.medium-inline-editor .ProseMirror ul,
+.medium-inline-editor .ProseMirror ol,
+.medium-editor-content .ProseMirror ul,
+.medium-editor-content .ProseMirror ol {
+    margin: 1.5rem 0;
+    padding-left: 2rem;
+}
+
+.medium-inline-editor .ProseMirror li,
+.medium-editor-content .ProseMirror li {
+    margin: 0.5rem 0;
+    line-height: 1.58;
+}
+
+.medium-inline-editor .ProseMirror pre,
+.medium-editor-content .ProseMirror pre {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    overflow-x: auto;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.medium-inline-editor .ProseMirror code,
+.medium-editor-content .ProseMirror code {
+    background: #f1f5f9;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    font-size: 0.875em;
+    color: #1e293b;
+}
+
+.medium-inline-editor .ProseMirror img,
+.medium-editor-content .ProseMirror img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 2rem auto;
+    display: block;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Placeholder styling */
+.medium-inline-editor .ProseMirror p.is-editor-empty:first-child::before,
+.medium-editor-content .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: #9ca3af;
+    pointer-events: none;
+    height: 0;
+    font-style: normal;
+    font-size: 21px;
+}
+
+/* Focus mode enhancements */
+.focus-mode .medium-editor-content .ProseMirror {
+    font-size: 22px;
+    line-height: 1.6;
+}
+
+.focus-mode .medium-editor-content .ProseMirror h1 {
+    font-size: 2.8rem;
+}
+
+.focus-mode .medium-editor-content .ProseMirror h2 {
+    font-size: 2.2rem;
+}
+
+/* Selection styling */
+.medium-inline-editor .ProseMirror ::selection,
+.medium-editor-content .ProseMirror ::selection {
+    background: rgba(16, 185, 129, 0.2);
+}
+
+/* Smooth transitions */
+.medium-inline-editor .ProseMirror *,
+.medium-editor-content .ProseMirror * {
+    transition: all 0.15s ease;
+}
+
+/* Selection toolbar animation */
+.medium-inline-editor .ProseMirror *::selection,
+.medium-editor-content .ProseMirror *::selection {
+    background: rgba(16, 185, 129, 0.2);
+}
+
+.medium-inline-editor .ProseMirror:focus-within~#selection-toolbar,
+.medium-editor-content .ProseMirror:focus-within~#selection-toolbar {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Bubble menu animations */
+.tippy-box[data-theme~='dark'] {
+    background-color: #1f2937;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Floating menu animations */
+.tippy-box[data-placement^='left']>.tippy-arrow::before {
+    border-left-color: white;
+}
+
+/* Custom scrollbar for code blocks */
+.medium-inline-editor .ProseMirror pre::-webkit-scrollbar,
+.medium-editor-content .ProseMirror pre::-webkit-scrollbar {
+    height: 8px;
+}
+
+.medium-inline-editor .ProseMirror pre::-webkit-scrollbar-track,
+.medium-editor-content .ProseMirror pre::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.medium-inline-editor .ProseMirror pre::-webkit-scrollbar-thumb,
+.medium-editor-content .ProseMirror pre::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.medium-inline-editor .ProseMirror pre::-webkit-scrollbar-thumb:hover,
+.medium-editor-content .ProseMirror pre::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Plus button hover effects */
+.medium-inline-editor:hover .plus-button,
+.medium-editor-content:hover .plus-button {
+    opacity: 1;
+}
+
+/* Medium-style focus effects */
+.medium-inline-editor .ProseMirror:focus,
+.medium-editor-content .ProseMirror:focus {
+    outline: none;
+}
+
+/* Empty line plus button positioning */
+.medium-editor-content .ProseMirror p:empty:hover::before {
+    content: '';
+    position: absolute;
+    left: -40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23d1d5db'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 6v6m0 0v6m0-6h6m-6 0H6' /%3E%3C/svg%3E") no-repeat center;
+    background-size: 20px 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    background-color: white;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+/* Bub
+ble Menu Animations */
+.bubble-menu-enter {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.95);
+}
+
+.bubble-menu-enter-active {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+    transition: all 200ms ease-out;
+}
+
+.bubble-menu-exit {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.bubble-menu-exit-active {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.95);
+    transition: all 150ms ease-in;
+}
+
+/* Smooth selection highlighting */
+.medium-inline-editor .ProseMirror ::selection,
+.medium-editor-content .ProseMirror ::selection {
+    background: rgba(16, 185, 129, 0.2);
+    transition: background-color 0.1s ease;
+}
+
+/* Prevent text selection on bubble menu */
+.bubble-menu {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Enhanced hover effects for bubble menu buttons */
+.bubble-menu button {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.bubble-menu button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.bubble-menu button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Active state glow effect */
+.bubble-menu button.bg-gray-700 {
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+}
+
+/* Icon scaling on hover */
+.bubble-menu button:hover svg {
+    transform: scale(1.1);
+    transition: transform 0.15s ease;
+}
+
+/* Improved separator styling */
+.bubble-menu .w-px {
+    background: linear-gradient(to bottom, transparent, #4b5563, transparent);
+}/* 
+Horizontal Rule (Divider) Styling */
+.medium-inline-editor .ProseMirror hr,
+.medium-editor-content .ProseMirror hr {
+    border: none;
+    border-top: 3px solid #e5e7eb;
+    margin: 2rem 0;
+    border-radius: 2px;
+    background: none;
+}
+
+.medium-inline-editor .ProseMirror hr:hover,
+.medium-editor-content .ProseMirror hr:hover {
+    border-top-color: #d1d5db;
+}
+
+/* Floating menu enhancements */
+.floating-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.floating-menu-item:hover {
+    background-color: #f9fafb;
+    transform: translateX(2px);
+}
+
+.floating-menu-item .icon {
+    font-size: 18px;
+    width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.floating-menu-item .text {
+    font-size: 14px;
+    color: #374151;
+    font-weight: 500;
+}/
+* Plus Icon Styling */
+.plus-icon-button {
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+.plus-icon-button:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    border-color: #10b981;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+.plus-icon-button:active {
+    transform: scale(0.95);
+}
+
+.plus-icon-button svg {
+    transition: transform 0.15s ease;
+}
+
+.plus-icon-button:hover svg {
+    transform: rotate(90deg);
+    color: #10b981;
+}
+
+/* Floating menu container */
+.floating-menu-container {
+    animation: fadeInUp 0.2s ease-out;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(229, 231, 235, 0.8);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Enhanced floating menu items */
+.floating-menu-container button {
+    transition: all 0.15s ease;
+    border-radius: 6px;
+    margin: 2px 4px;
+}
+
+.floating-menu-container button:hover {
+    background-color: #f3f4f6;
+    transform: translateX(4px);
+}
+
+.floating-menu-container button:active {
+    transform: translateX(2px) scale(0.98);
+}
